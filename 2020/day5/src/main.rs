@@ -4,6 +4,7 @@ use bitvec::prelude::*;
 mod test;
 
 fn main() {
+    // Part 1
     let max_id = itertools::max(
         include_str!("input.txt")
             .lines()
@@ -11,53 +12,48 @@ fn main() {
             .map(|seat| seat.id()),
     );
     println!("The maximum seat ID is {:?}", max_id);
+
+    // Part 2
+    let mut ids: Vec<_> = include_str!("input.txt").lines().map(Seat::parse).collect();
+    ids.sort();
+
+    let mut last_id: Option<Seat> = None;
+    for id in ids {
+        if let Some(last_id) = last_id {
+            let gap = id.0 - last_id.0;
+            if gap > 1 {
+                println!("Our seat ID is {}", last_id.0 + 1);
+                return;
+            }
+        }
+        last_id = Some(id);
+    }
 }
 
-#[derive(Default,Debug,PartialEq)]
-struct Seat {
-    row: u8,
-    col: u8,
-}
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct Seat(u16);
 
 impl Seat {
-    const ROW_BITS: usize = 7;
-    const COL_BITS: usize = 3;
-
     fn parse(input: &str) -> Self {
-        let bytes = input.as_bytes();
         let mut res: Seat = Default::default();
-        {
-            let row = BitSlice::<_,Msb0>::from_element_mut(&mut res.row);
 
-            for (i, &b) in bytes[0..Self::ROW_BITS].iter().enumerate() {
-                row.set(
-                    (8 - Self::ROW_BITS) + i,
-                    match b {
-                        b'F' => false,
-                        b'B' => true,
-                        _ => panic!("unexpected row letter: {}", b as char),
-                    },
-                );
-            }
+        let bits = BitSlice::<_, Lsb0>::from_element_mut(&mut res.0);
+        for (i, &b) in input.as_bytes().iter().rev().enumerate() {
+            bits.set(
+                i,
+                match b {
+                    b'F' | b'L' => false,
+                    b'B' | b'R' => true,
+                    _ => panic!("unexpected letter: {}", b as char),
+                },
+            )
         }
-        {
-            let col = BitSlice::<_, Msb0>::from_element_mut(&mut res.col);
-            for (i, &b) in bytes[Self::ROW_BITS..][..Self::COL_BITS].iter().enumerate() {
-                col.set(
-                    (8 - Self::COL_BITS) + i,
-                    match b {
-                        b'L' => false,
-                        b'R' => true,
-                        _ => panic!("unexpected col letter: {}", b as char),
-                    },
-                );
-            }
-        }
+
         res
     }
 
     fn id(&self) -> u64 {
-        ((self.row as u64) << Self::COL_BITS) + (self.col as u64)
+        self.0 as u64
     }
 }
 
