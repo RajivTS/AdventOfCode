@@ -1,5 +1,6 @@
 use multimap::MultiMap;
 use std::fmt;
+use itertools::Itertools;
 
 type BagSpec<'a> = (&'a str, &'a str);
 type Rules<'a> = MultiMap<BagSpec<'a>, (usize, BagSpec<'a>)>;
@@ -88,7 +89,48 @@ fn reverse_graph<'a>(graph: &Rules<'a>) -> Rules<'a> {
         .collect()
 }
 
+fn walk_subgraph<'iter, 'elems: 'iter>(
+    graph: &'iter Rules<'elems>,
+    root: &(&'iter str, &'iter str),
+) -> Box<dyn Iterator<Item = (&'elems str, &'elems str)> + 'iter> {
+    Box::new(
+        graph
+        .get_vec(root)
+        .into_iter()
+        .flatten()
+        .map(move |&(_,neighbor)| {
+            std::iter::once(neighbor).chain(walk_subgraph(graph, &neighbor))
+        })
+        .flatten()
+    )
+}
+
+fn bag_quantities<'iter, 'elems: 'iter>(
+    graph: &'iter Rules<'elems>,
+    root: &(&'iter str,&'iter str),
+) -> Box<dyn Iterator<Item = usize> + 'iter> {
+    Box::new(
+        graph
+        .get_vec(root)
+        .into_iter()
+        .flatten()
+        .map(move |&(count, neighbor)| {
+            std::iter::once(count).chain(bag_quantities(graph, &neighbor).map(move |x| x * count))
+        })
+        .flatten()
+    )
+}
+
 fn main() {
+    // Part 1
     let rules = parse_rules(include_str!("input.txt"));
-    print!("{}", FormattedRules(rules));
+    let rev_rules = reverse_graph(&rules);
+
+    let target_bag = ("shiny", "gold");
+    let answer = walk_subgraph(&rev_rules, &target_bag).unique().count();
+    println!("{} colors can contain {:?} bags", answer, target_bag);
+
+    // Part 2
+    let answer: usize = bag_quantities(&rules, &target_bag).sum();
+    println!("You must buy {} bags to fill a {:?} bag", answer, target_bag);
 }
