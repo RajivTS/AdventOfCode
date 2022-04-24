@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Clone, Copy, Debug, Default)]
 struct Results {
     ones: usize,
@@ -34,4 +36,24 @@ fn main() {
             });
     println!("There are {} differences of 1 jolt and {} differences of 3 jolt", answer.ones, answer.threes);
     println!("Effective jolt value is {}", answer.ones * answer.threes);
+
+    // Part II
+    let n = numbers.len();
+    let mut num_paths = HashMap::new();
+    num_paths.insert(numbers.last().copied().unwrap(), 1);
+    for i in (0..(n - 1)).into_iter().rev() {
+        let i_val = numbers[i];
+        let range = (i + 1)..=(std::cmp::min(i + 3, n - 1));
+        let neighbor_paths: usize = range.filter_map(|j| {
+            let j_val = numbers[j];
+            let gap = j_val - i_val;
+            if (1..=3).contains(&gap) {
+                Some(num_paths.get(&j_val).unwrap())
+            } else {
+                None
+            }
+        }).sum();
+        num_paths.insert(i_val,neighbor_paths);
+    }
+    println!("Number of joltage adapter configurations is {}", num_paths.get(&0).unwrap())
 }
