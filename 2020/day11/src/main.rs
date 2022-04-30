@@ -258,14 +258,14 @@ struct Positioned<T>(Pair, T);
 
 fn main() {
     // Part I
-    // let last = SeatingMap::<Tile>::parse(include_bytes!("input.txt")).last();
-    // println!("{:?}", last);
-    // println!(
-    //     "there are {} occupied seats",
-    //     last.iter()
-    //         .filter(|p| matches!(p.1, Tile::OccupiedSeat))
-    //         .count()
-    // );
+    let last = SeatingMap::<Tile>::parse(include_bytes!("input.txt")).last();
+    println!("{:?}", last);
+    println!(
+        "there are {} occupied seats",
+        last.iter()
+            .filter(|p| matches!(p.1, Tile::OccupiedSeat))
+            .count()
+    );
     // Part II
     let last = SeatingMap::<Tile>::parse(include_bytes!("input.txt")).last_extended();
     println!("{:?}", last);
