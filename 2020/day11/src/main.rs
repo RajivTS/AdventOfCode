@@ -49,7 +49,7 @@ impl Tile {
                 .filter(|t| matches!(t, Self::OccupiedSeat))
                 .count()
             {
-                0..=3 => Self::OccupiedSeat,
+                0..=4 => Self::OccupiedSeat,
                 _ => Self::EmptySeat,
             },
         }
@@ -160,12 +160,46 @@ impl SeatingMap<Tile> {
         res
     }
 
+    fn next_extended(&self) -> Self {
+        let mut res = Self::new(self.size);
+        res.extend(
+            self.iter()
+                .map(|Positioned(pos, tile)| Positioned(pos, tile.next(self.visible_seats(pos)))),
+        );
+        res        
+    }
+
     fn last(self) -> Self {
         use itertools::Itertools;
         itertools::iterate(self, SeatingMap::next)
             .tuple_windows()
             .find_map(|(prev, next)| if prev == next { Some(next) } else { None })
             .unwrap()
+    }
+
+    fn last_extended(self) -> Self {
+        use itertools::Itertools;
+        itertools::iterate(self, SeatingMap::next_extended)
+            .tuple_windows()
+            .find_map(|(prev, next)| if prev == next { Some(next) } else { None })
+            .unwrap()
+    }
+
+    fn visible_seats(&self, pos: Pair) -> impl Iterator<Item = Tile> + '_ {
+        use itertools::Itertools;
+        (-1..=1)
+        .map(|dx| (-1..=1).map(move |dy| (dx, dy)))
+        .flatten()
+        .filter(|&(dx, dy)| !(dx == 0 && dy == 0))
+        .map(move |(dx, dy)| {
+            itertools::iterate(pos, move |v| Pair { x: v.x + dx, y: v.y + dy })
+            .skip(1)
+            .map(|pos| self.get(pos))
+            .while_some()
+            .filter_map(|tile| if matches!(tile, Tile::Floor) { None } else { Some(tile) })
+            .take(1)
+        })
+        .flatten() 
     }
 }
 
@@ -223,7 +257,17 @@ where
 struct Positioned<T>(Pair, T);
 
 fn main() {
-    let last = SeatingMap::<Tile>::parse(include_bytes!("input.txt")).last();
+    // Part I
+    // let last = SeatingMap::<Tile>::parse(include_bytes!("input.txt")).last();
+    // println!("{:?}", last);
+    // println!(
+    //     "there are {} occupied seats",
+    //     last.iter()
+    //         .filter(|p| matches!(p.1, Tile::OccupiedSeat))
+    //         .count()
+    // );
+    // Part II
+    let last = SeatingMap::<Tile>::parse(include_bytes!("input.txt")).last_extended();
     println!("{:?}", last);
     println!(
         "there are {} occupied seats",
