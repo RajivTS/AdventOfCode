@@ -10,6 +10,17 @@ impl Pair {
     fn manhattan_distance(self) -> usize {
         (self.x.abs() + self.y.abs()) as _
     }
+
+    fn rotate(self, d: AngleDelta) -> Self {
+        let Self {x, y} = self;
+        match d.0.rem_euclid(4) {
+            0 => Self { x, y },
+            1 => Self { x: y, y: -x },
+            2 => Self { x: -x, y: -y },
+            3 => Self { x: -y, y: x },
+            _ => unreachable!()
+        }
+    }
 }
 
 impl std::ops::Mul<isize> for Pair {
@@ -79,6 +90,7 @@ impl std::ops::Add<AngleDelta> for Direction {
 struct ShipState {
     pos: Pair,
     dir: Direction,
+    waypoint: Pair,
 }
 
 impl std::ops::Add<Instruction> for ShipState {
@@ -87,17 +99,17 @@ impl std::ops::Add<Instruction> for ShipState {
     fn add(self, rhs: Instruction) -> Self::Output {
         match rhs {
             Instruction::Move(dir, units) => Self {
-                pos: self.pos + dir.pair() * units,
+                waypoint: self.waypoint + dir.pair() * units,
                 ..self
             },
             Instruction::Rotate(delta) => Self {
-                dir: self.dir + delta,
+                waypoint: self.waypoint.rotate(delta),
                 ..self
             },
             Instruction::Advance(units) => Self {
-                pos: self.pos + self.dir.pair() * units,
+                pos: self.pos + self.waypoint * units,
                 ..self
-            }
+            },
         }
     }
 }
@@ -132,6 +144,7 @@ fn main() {
     let start = ShipState {
         dir: Direction::East,
         pos: Pair { x: 0, y: 0 },
+        waypoint: Pair { x: 10, y: 1 },
     };
     let end = parse_instructions(include_str!("input.txt")).fold(start, |state, ins| state + ins);
 
